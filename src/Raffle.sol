@@ -23,6 +23,7 @@ contract Raffle is VRFConsumerBaseV2Plus{
     error Raffle_NotEnoghETH();
     error Raffle_TransferFailed();
     error Raffle_RaffleNotOpen();
+    error Raffle_UpKeepNeeded(uint256 currentBalance, uint256 numPlayers, uint256 raffleState);
 
     enum RaffleState {
         OPEN, CALCULATING
@@ -64,7 +65,8 @@ RaffleState private s_raffleState;
     function getEntranceFee() external view returns(uint256){
         return i_entranceFee;
     }
-
+function getRaffleState() external view returns(RaffleState){
+return s_raffleState;}
  
 
     function enterRaffle() external payable{
@@ -87,7 +89,16 @@ if(msg.value < i_entranceFee){
         }
 
     }
-    function pickWinner() public {
+    function performUpkeep(bytes calldata /* perfromData */) external {
+        (bool upKeepNeeded, ) = checkUpKeep("");
+        if(!upKeepNeeded){
+
+            revert Raffle_UpKeepNeeded(
+            address(this).balance,
+            s_players.length,
+            uint256(s_raffleState));
+
+        }
     // 1. Makes migration easier
     // 2. makes frontend  "indexing" easier
 if(block.timestamp - s_lastTimeStamp < i_interval){
@@ -128,6 +139,9 @@ uint256 requestId = i_vrfCoordinator.requestRandomWords(
         revert Raffle_TransferFailed();
        }
        emit WinnerPicked(winner);
+    }
+    function getPlayer (uint256 indexOfPlayer) external view returns(address){
+        return s_players[indexOfPlayer];
     }
     /**Getter Function */
    
